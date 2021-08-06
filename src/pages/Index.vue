@@ -1,18 +1,11 @@
 <template>
   <div class="mt-70">
-    <!--        <div class="row justify-center">-->
-    <!--          <h2 class='title'>Users</h2>-->
-    <!--        </div>-->
-    <!--        <div class="row justify-center">-->
-    <!--          <div class='line q-mt-md'></div>-->
-    <!--        </div>-->
-    <h2 v-if="!data" class="text-center">No Users registered</h2>
-    <div v-if="data" class="q-pa-xl">
+    <div v-if="users" class="q-pa-xl">
       <div class="q-pa-md">
         <q-table
-          class="my-sticky-virtscroll-table"
-          :rows-per-page-options="[0]"
-          :data="data"
+          class="table"
+          :rows-per-page-options="[20]"
+          :data="users"
           :filter="filter"
           :columns="columns"
           row-key="id"
@@ -21,29 +14,26 @@
           bordered
           separator="cell"
         >
+          <template v-slot:top-left> <p>Clients</p></template>
+
+          <!--          <template v-slot:top-right>-->
+<!--            <q-input-->
+<!--              borderless-->
+<!--              dense-->
+<!--              debounce="300"-->
+<!--              v-model="filter"-->
+<!--              placeholder="Search"-->
+<!--            >-->
+<!--              <template v-slot:append>-->
+<!--                <q-icon name="search"></q-icon>-->
+<!--              </template>-->
+<!--            </q-input>-->
+<!--          </template>-->
           <template v-slot:top-right>
-            <q-input
-              borderless
-              dense
-              debounce="300"
-              v-model="filter"
-              placeholder="Search"
-            >
-              <template v-slot:append>
-                <q-icon name="search"></q-icon>
-              </template>
-            </q-input>
-          </template>
-          <template v-slot:body-cell-active="active">
-            <q-td style="width:20px" :props="active">
-              <q-toggle @input="activateUser(active.row.active, active.row.id)" v-model="active.row.active"/>
-            </q-td>
+            <q-btn color="blue" @click="addDialogActive=true">New Client</q-btn>
           </template>
           <template v-slot:body-cell-actions="props">
             <q-td style="width:135px" :props="props">
-              <router-link :to=" kebabCase(props.row.name) + '/delivery'" exact active-class="active">
-                <q-btn flat dense round color="grey" icon="link" />
-              </router-link>
               <q-btn
                 dense
                 round
@@ -61,24 +51,15 @@
                 icon="delete"
               ></q-btn>
               <q-dialog
+                v-model="addDialogActive"
+                persistent>
+                <Add :tab="'add'"/>
+              </q-dialog>
+              <q-dialog
                 v-if="props.row.id === currentID"
                 v-model="editDialogActive"
-                persistent
-              >
-                <div class="bg-white q-pa-lg">
-                  <div class="q-mb-lg">
-                    <div class="row justify-end">
-                      <q-btn v-close-popup class="q-ma-md self-end" round dense color="blue" icon="close"/>
-                    </div>
-                    <div class="row justify-center">
-                      <h2 class='title'>Edit</h2>
-                    </div>
-                    <div class="row justify-center">
-                      <div class='line q-mt-md'></div>
-                    </div>
-                  </div>
-                  <LoginRegister :tab="'edit'" :user="props.row"/>
-                </div>
+                persistent>
+                <Add tab="edit" :user="props.row"/>
               </q-dialog>
               <q-dialog
                 v-if="props.row.id === currentID"
@@ -96,8 +77,8 @@
                       />
                     </div>
                     <div class="text-h6">
-                      Are you sure want to delete
-                      {{ props.row.username }}?
+                      Are you sure want to delete client
+                      <span class="text-bold">{{ props.row.username }}</span>?
                     </div>
                   </q-card-section>
                   <q-card-actions align="right">
@@ -127,10 +108,13 @@
 
 <script>
   import UserService from "../services/user.service";
-  let _ = require('lodash');
+  import {mapActions} from "vuex"
+  import Add from "components/Add";
   export default {
+    components: {Add},
     data() {
       return {
+        providers: null,
         username: null,
         filter: '',
         userId: null,
@@ -138,146 +122,50 @@
         deleteModal: false,
         currentID: null,
         deleteSuccess: null,
+        addDialogActive: false,
         editDialogActive: false,
         deleteDialogActive: false,
         columns: [
           {
-            name: "active",
+            name: "username",
             required: true,
-            label: "Active",
+            label: "Name",
             align: "left",
-            field: "",
+            field: row => row.username,
             format: val => `${val}`,
             sortable: true,
             classes: 'bg-grey-2 ellipsis',
             headerClasses: 'bg-primary text-white'
           },
           {
-            name: "name",
+            name: "email",
             required: true,
-            label: "Restaurant Name",
+            label: "Email",
             align: "left",
-            field: row => row.name.substring(0, 20),
+            field: row => row.email,
             format: val => `${val}`,
             sortable: true,
             classes: 'bg-grey-2 ellipsis',
             headerClasses: 'bg-primary text-white'
           },
-          // {
-          //   name: "username",
-          //   required: true,
-          //   label: "Owner Name",
-          //   align: "left",
-          //   field: row => row.username.substring(0, 15),
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
           {
-            name: "tel",
+            name: "phone",
             required: true,
             label: "Phone",
             align: "left",
-            field: row => row.tel,
+            field: row => row.phone,
             format: val => `${val}`,
             sortable: true,
             classes: 'bg-grey-2 ellipsis',
             headerClasses: 'bg-primary text-white'
           },
-          // {
-          //   name: "email",
-          //   required: true,
-          //   label: "Email",
-          //   align: "left",
-          //   field: row => row.email.substring(0, 10),
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          // {
-          //   name: "country",
-          //   required: true,
-          //   label: "Country",
-          //   align: "left",
-          //   field: row => row.country,
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          // {
-          //   name: "city",
-          //   required: true,
-          //   label: "City",
-          //   align: "left",
-          //   field: row => row.city,
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          // {
-          //   name: "address",
-          //   required: true,
-          //   label: "Address",
-          //   align: "left",
-          //   field: row => row.address,
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          // {
-          //   name: "rating",
-          //   required: true,
-          //   label: "Rating",
-          //   align: "left",
-          //   field: row => row.rating,
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          // {
-          //   name: "googleId",
-          //   required: true,
-          //   label: "Google ID",
-          //   align: "left",
-          //   field: row => row.googleId,
-          //   format: val => `${val}`,
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
           {
-            name: "plan",
+            name: "providers",
             required: true,
-            label: "Plan",
+            label: "Providers",
             align: "left",
-            field: row => row.plan,
+            field: row => row.providers.map(element => element.name),
             format: val => `${val}`,
-            sortable: true,
-            classes: 'bg-grey-2 ellipsis',
-            headerClasses: 'bg-primary text-white'
-          },
-          // {
-          //   name: "expireDate",
-          //   align: "center",
-          //   label: "Expire Date",
-          //   field: row => row.expireDate,
-          //   sort: (a, b) => parseInt(a, 10) - parseInt(b, 10),
-          //   sortable: true,
-          //   classes: 'bg-grey-2 ellipsis',
-          //   headerClasses: 'bg-primary text-white'
-          // },
-          {
-            name: "createdDate",
-            align: "center",
-            label: "Created Date",
-            field: row => row.createdDate.substring(0, 10),
-            sort: (a, b) => parseInt(a, 10) - parseInt(b, 10),
             sortable: true,
             classes: 'bg-grey-2 ellipsis',
             headerClasses: 'bg-primary text-white'
@@ -285,13 +173,17 @@
           { name: "actions", label: "Actions", field: "", align: "center",    classes: 'bg-grey-2 ellipsis',
             headerClasses: 'bg-primary text-white' }
         ],
-        data: []
       };
     },
+    computed: {
+      users() {
+        return this.$store.getters['getUsers']
+      }
+    },
     methods: {
-      kebabCase(item) {
-        return _.kebabCase(item)
-      },
+      ...mapActions({
+        fetchUsers: 'fetchUsers',
+      }),
       openEditDialog(id) {
         this.currentID = id;
         this.editDialogActive = true;
@@ -300,22 +192,6 @@
         this.currentID = id;
         this.deleteDialogActive = true;
       },
-      activateUser(active, userId) {
-        const user = {
-          active: active,
-        };
-        UserService.UpdateUserProf(user, userId)
-          .then(() => {
-            this.$emit("updatedForm");
-            this.notify("Your data updated successfully");
-            this.close();
-            setTimeout(() => {
-            }, 2500);
-          })
-          .catch(error => {
-            console.log(error.error.response.data);
-          });
-      },
       deleteUser(userId) {
         UserService.DeleteUser(userId)
           .then(response => {
@@ -323,19 +199,24 @@
           })
           .catch(() => {});
       },
-      getUsers() {
-        UserService.GetUsers()
-          .then(response => {
-            this.data = response;
-            this.data = this.data.filter(user => !user.admin)
-          })
-          .catch(() => {});
-      }
+      // getUsers() {
+      //   UserService.GetUsers()
+      //     .then(response => {
+      //       this.data = response;
+      //     })
+      //     .catch(() => {});
+      // },
+      // getProviders() {
+      //   ProviderService.GetAll()
+      //     .then(response => {
+      //       this.providers = response;
+      //     })
+      //     .catch(() => {});
+      // }
     },
     mounted() {
-      if(process.browser){
-        this.getUsers();
-      }
+        // this.getUsers();
+        this.fetchUsers();
     }
   };
 </script>
