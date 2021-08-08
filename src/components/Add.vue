@@ -50,7 +50,7 @@
                  class="q-mt-md"
                  type="button"
                  @click="addProvider(newProviderName)"
-                >
+          >
             Add Provider
           </q-btn>
         </template>
@@ -59,7 +59,7 @@
         <q-list v-if="providers" bordered>
           <q-item v-for="(provider, i) in providers" clickable v-ripple :key="provider._id">
             <q-item-section>
-              <q-checkbox :value="activeProviders"
+              <q-checkbox :value="updatedProviders?updatedProviders.some(el => el._id === provider._id):false"
                           @input="toggleProvider(provider,i)"
                           :label="provider.name"
 
@@ -166,10 +166,10 @@ export default {
   data() {
     return {
       email: this.user?.email,
-      username: this.user ? this.user.username : null,
-      phone: this.user ? this.user.phone : null,
-      activeProviders: this.user ? this.user.providers : null,
+      username: this.user?.username,
+      phone: this.user?.phone,
       currentID: null,
+      updatedProviders: [],
       newProviderName: null,
       editDialogActive: false,
       deleteDialogActive: false,
@@ -183,35 +183,47 @@ export default {
   computed: {
     providers() {
       return this.$store.getters['getProviders']
+    },
+
+    activeProviders() {
+        return this.$store.getters['getUserProviders']
     }
   },
   methods: {
     ...mapActions({
       fetchUsers: 'fetchUsers',
-      fetchProviders: 'fetchProviders',
+      fetchProviders: 'fetchProviders'
     }),
-    toggleProvider(provider, i){
-      let exist = this.activeProviders.some(el => el._id === provider._id)
-      let body = {
-        userId: this.user._id,
-        providerId: provider._id
-      }
+    toggleProvider(provider) {
+      console.log('provider')
+      let exist = this.updatedProviders.some(el => el._id === provider._id)
       if (!exist) {
-        UserService.AddProviderToUser(body)
-          .then(response => {
-            this.activeProviders.push(provider);
-          })
-          .catch(() => {
-          });
+        this.updatedProviders = {...this.activeProviders, provider}
       } else {
-        UserService.RemoveProviderFromUser(body)
-          .then(response => {
-            console.log(i)
-            this.activeProviders.splice(i,1);
-          })
-          .catch(() => {
-          });
+        this.updatedProviders = this.activeProviders.filter(el => el._id !== provider._id)
       }
+
+      // let exist = this.activeProviders.some(el => el._id === provider._id)
+      // let body = {
+      //   userId: this.user._id,
+      //   providerId: provider._id
+      // }
+      // if (!exist) {
+      //   UserService.AddProviderToUser(body)
+      //     .then(response => {
+      //       this.activeProviders.push(provider);
+      //     })
+      //     .catch(() => {
+      //     });
+      // } else {
+      //   UserService.RemoveProviderFromUser(body)
+      //     .then(response => {
+      //       console.log(i)
+      //       this.activeProviders.splice(i,1);
+      //     })
+      //     .catch(() => {
+      //     });
+      // }
     },
     openEditDialog(id) {
       this.currentID = id;
@@ -243,7 +255,7 @@ export default {
           this.error = error;
         });
     },
-    editProvider(name){
+    editProvider(name) {
       console.log(name)
     },
     deleteProvider(id) {
@@ -251,13 +263,15 @@ export default {
         .then(response => {
           this.deleteSuccess = response;
         })
-        .catch(() => {});
+        .catch(() => {
+        });
     },
     submitForm() {
       const user = {
         username: this.username,
         email: this.email,
         phone: this.phone,
+        providers: this.updatedProviders ? this.updatedProviders : this.activeProviders
       };
       this.$v.$touch();
       // if (this.$v.$invalid) {
@@ -291,7 +305,7 @@ export default {
   },
   mounted() {
     this.fetchProviders();
-    this.setActiveUser();
+    this.updatedProviders = this.user.providers
   }
 }
 </script>

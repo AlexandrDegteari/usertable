@@ -1,23 +1,20 @@
 import UserService from "src/services/user.service";
 const state = {
   users: [],
-  activeUser: null
+  userProviders: []
 };
 
 const getters = {
   getUsers(state) {
     return state.users
+  },
+  getUserProviders(state) {
+    return state.userProviders
   }
 };
 const actions = {
   setUsers({commit}, users) {
     commit('setUsers', users);
-  },
-  setActiveProviders({commit}, user) {
-    commit('setActiveProviders', user);
-  },
-  setActiveUser({commit}, user) {
-    commit('setActiveUser', user);
   },
   fetchUsers({commit}) {
     UserService.GetUsers()
@@ -30,8 +27,17 @@ const mutations = {
   setUsers(state, users) {
     state.users = users
   },
-  setActiveUser(state, user) {
-    state.activeUser = user
+  addUserProviders(state, provider) {
+    let exist = state.userProviders.some(el => el._id === provider._id)
+    if (!exist) {
+      this.$store.commit('pushProvider', provider)
+    } else {
+      this.$store.commit('pullProvider', provider)
+    }
+    state.userProviders = user.providers
+  },
+  setUserProviders(state, user) {
+    state.userProviders = user.providers
   }
 };
 
