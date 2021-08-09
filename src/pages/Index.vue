@@ -51,15 +51,10 @@
                 icon="delete"
               ></q-btn>
               <q-dialog
-                v-model="addDialogActive"
-                persistent>
-                <Add :tab="'add'"/>
-              </q-dialog>
-              <q-dialog
                 v-if="props.row.id === currentID"
                 v-model="editDialogActive"
                 persistent>
-                <Add tab="edit" :user="props.row"/>
+                <Add tab="edit" @hide=hide :user="props.row"/>
               </q-dialog>
               <q-dialog
                 v-if="props.row.id === currentID"
@@ -103,6 +98,11 @@
         </q-table>
       </div>
     </div>
+    <q-dialog
+      v-model="addDialogActive"
+      persistent>
+      <Add @hide="hide" :tab="'add'"/>
+    </q-dialog>
   </div>
 </template>
 
@@ -192,30 +192,21 @@
         this.currentID = id;
         this.deleteDialogActive = true;
       },
+      hide(){
+        this.addDialogActive = false;
+        this.addDialogActive = false;
+        this.editDialogActive = false;
+      },
       deleteUser(userId) {
         UserService.DeleteUser(userId)
           .then(response => {
             this.deleteSuccess = response;
+            this.fetchUsers()
           })
           .catch(() => {});
-      },
-      // getUsers() {
-      //   UserService.GetUsers()
-      //     .then(response => {
-      //       this.data = response;
-      //     })
-      //     .catch(() => {});
-      // },
-      // getProviders() {
-      //   ProviderService.GetAll()
-      //     .then(response => {
-      //       this.providers = response;
-      //     })
-      //     .catch(() => {});
-      // }
+      }
     },
     mounted() {
-        // this.getUsers();
         this.fetchUsers();
     }
   };

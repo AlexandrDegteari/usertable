@@ -1,12 +1,15 @@
 <template>
-  <div class="full-width bg-white q-pa-md">
+  <q-card class="full-width bg-white q-pa-md">
+    <q-card-section>
     <div class="row justify-end">
       <q-btn v-close-popup class="self-end" round dense color="blue" icon="close"/>
     </div>
     <div class="row justify-center">
-      <h1 class='title text-uppercase'>{{ tab }} client</h1>
+      <h1 class='title text-uppercase no-padding no-margin'>{{ tab }} client</h1>
     </div>
+    </q-card-section>
     <q-form @submit="submitForm">
+      <q-card-section style="max-height: 50vh" class="scroll">
       <q-input
         dense
         v-model.trim="$v.username.$model"
@@ -47,7 +50,8 @@
         label="Providers">
         <template v-slot:append>
           <q-btn color="blue"
-                 class="q-mt-md"
+                 dense
+                 class="q-mb-sm q-pa-none"
                  type="button"
                  @click="addProvider(newProviderName)"
           >
@@ -57,10 +61,10 @@
       </q-input>
       <div style="max-width: 350px">
         <q-list v-if="providers" bordered>
-          <q-item v-for="(provider, i) in providers" clickable v-ripple :key="provider._id">
+          <q-item v-for="provider in providers" clickable v-ripple :key="provider._id">
             <q-item-section>
               <q-checkbox :value="updatedProviders?updatedProviders.some(el => el._id === provider._id):false"
-                          @input="toggleProvider(provider,i)"
+                          @input="toggleProvider(provider)"
                           :label="provider.name"
 
               />
@@ -145,13 +149,16 @@
           </q-item>
         </q-list>
       </div>
+      </q-card-section>
+      <q-card-actions align="right">
       <q-btn color="blue"
              class="q-mt-md"
              type="submit">
         {{ tab }}
       </q-btn>
+      </q-card-actions>
     </q-form>
-  </div>
+  </q-card>
 </template>
 <script>
 import {email, required} from "vuelidate/lib/validators";
@@ -183,10 +190,6 @@ export default {
   computed: {
     providers() {
       return this.$store.getters['getProviders']
-    },
-
-    activeProviders() {
-        return this.$store.getters['getUserProviders']
     }
   },
   methods: {
@@ -195,35 +198,12 @@ export default {
       fetchProviders: 'fetchProviders'
     }),
     toggleProvider(provider) {
-      console.log('provider')
       let exist = this.updatedProviders.some(el => el._id === provider._id)
       if (!exist) {
-        this.updatedProviders = {...this.activeProviders, provider}
+        this.updatedProviders.push(provider)
       } else {
-        this.updatedProviders = this.activeProviders.filter(el => el._id !== provider._id)
+        this.updatedProviders = this.updatedProviders.filter(el => el._id !== provider._id)
       }
-
-      // let exist = this.activeProviders.some(el => el._id === provider._id)
-      // let body = {
-      //   userId: this.user._id,
-      //   providerId: provider._id
-      // }
-      // if (!exist) {
-      //   UserService.AddProviderToUser(body)
-      //     .then(response => {
-      //       this.activeProviders.push(provider);
-      //     })
-      //     .catch(() => {
-      //     });
-      // } else {
-      //   UserService.RemoveProviderFromUser(body)
-      //     .then(response => {
-      //       console.log(i)
-      //       this.activeProviders.splice(i,1);
-      //     })
-      //     .catch(() => {
-      //     });
-      // }
     },
     openEditDialog(id) {
       this.currentID = id;
@@ -248,8 +228,9 @@ export default {
         .then(() => {
           this.notify("Provider added successfully");
           setTimeout(() => {
-            this.getProviders();
-          }, 2500);
+            this.newProviderName = null
+            this.fetchProviders();
+          }, 500);
         })
         .catch(error => {
           this.error = error;
@@ -271,7 +252,7 @@ export default {
         username: this.username,
         email: this.email,
         phone: this.phone,
-        providers: this.updatedProviders ? this.updatedProviders : this.activeProviders
+        providers: this.updatedProviders
       };
       this.$v.$touch();
       // if (this.$v.$invalid) {
@@ -282,9 +263,10 @@ export default {
           .then(() => {
             this.$emit("updatedForm");
             this.notify("Your data updated successfully");
-            this.close();
+            this.fetchUsers();
             setTimeout(() => {
-            }, 2500);
+              this.close();
+            }, 500);
           })
           .catch(error => {
             this.error = error;
@@ -293,9 +275,11 @@ export default {
         UserService.AddUser(user)
           .then(() => {
             this.notify("Client updated successfully");
-            this.close();
+            this.fetchUsers();
             setTimeout(() => {
-            }, 2500);
+              this.close();
+            }, 500);
+
           })
           .catch(error => {
             this.error = error;
@@ -305,7 +289,9 @@ export default {
   },
   mounted() {
     this.fetchProviders();
-    this.updatedProviders = this.user.providers
+    if(this.user && this.user.providers){
+      this.updatedProviders.push(...this.user.providers)
+    }
   }
 }
 </script>
